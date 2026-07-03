@@ -4,8 +4,8 @@ from discord.ext import commands
 import time
 from typing import Optional
 
-from netra.core.bot import Netra
-from netra.core.i18n import i18n
+from core.bot import Netra
+from core.i18n import i18n
 
 class Utility(commands.Cog):
     def __init__(self, bot: Netra):

@@ -16,10 +16,10 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-from netra.models.base import Base
-from netra.models.moderation import Warning, ModLog
-from netra.models.reminder import Reminder
-from netra.models.systems import Notice, Ticket
+from models.base import Base
+from models.moderation import Warning, ModLog
+from models.reminder import Reminder
+from models.systems import Notice, Ticket
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,

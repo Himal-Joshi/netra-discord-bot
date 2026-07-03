@@ -8,9 +8,9 @@ import dateparser
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 
-from netra.core.bot import Netra
-from netra.core.config import settings
-from netra.models.reminder import Reminder
+from core.bot import Netra
+from core.config import settings
+from models.reminder import Reminder
 from sqlalchemy import select
 
 log = logging.getLogger(__name__)
@@ -19,10 +19,10 @@ class Reminders(commands.Cog):
     def __init__(self, bot: Netra):
         self.bot = bot
         # In production, use the database URL for APScheduler persistence
-        job_stores = {
-            'default': SQLAlchemyJobStore(url=settings.DATABASE_URL.replace("aiosqlite", "sqlite"))
+        jobstores = {
+            'default': SQLAlchemyJobStore(url=settings.DATABASE_URL.replace("+aiosqlite", ""))
         }
-        self.scheduler = AsyncIOScheduler(jobstores=job_stores)
+        self.scheduler = AsyncIOScheduler(jobstores=jobstores)
         self.scheduler.start()
 
     async def send_reminder(self, user_id: int, channel_id: int, content: str):

@@ -1,7 +1,7 @@
 from datetime import datetime
 from sqlalchemy import BigInteger, String, DateTime, Boolean
 from sqlalchemy.orm import Mapped, mapped_column
-from netra.models.base import Base
+from models.base import Base
 
 class Reminder(Base):
     __tablename__ = "reminders"

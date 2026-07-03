@@ -3,7 +3,9 @@ from pathlib import Path
 from typing import Dict
 
 class I18nManager:
-    def __init__(self, locales_dir: str = "netra/locales"):
+    def __init__(self, locales_dir: str = None):
+        if locales_dir is None:
+            locales_dir = Path(__file__).parent.parent / "locales"
         self.locales_dir = Path(locales_dir)
         self.bundles: Dict[str, FluentBundle] = {}
         self._load_locales()

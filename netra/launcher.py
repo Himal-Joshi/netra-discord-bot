@@ -2,9 +2,9 @@ import asyncio
 import os
 from dotenv import load_dotenv
 
-from netra.core.bot import Netra
-from netra.core.logging import setup_logging
-from netra.core.config import settings
+from core.bot import Netra
+from core.logging import setup_logging
+from core.config import settings
 
 def main():
     # Setup logging

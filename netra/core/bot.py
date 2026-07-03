@@ -6,10 +6,10 @@ from typing import List, Optional
 import logging
 
 import sentry_sdk
-from netra.core.config import settings
-from netra.database.session import SessionLocal, init_db
-from netra.core.metrics import GUILD_COUNT, LATENCY, COMMANDS_EXECUTED, start_metrics_server
-from netra.core.i18n import i18n
+from core.config import settings
+from database.session import SessionLocal, init_db
+from core.metrics import GUILD_COUNT, LATENCY, COMMANDS_EXECUTED, start_metrics_server
+from core.i18n import i18n
 
 log = logging.getLogger(__name__)
 
@@ -44,13 +44,13 @@ class Netra(commands.AutoShardedBot):
 
         # Load Cogs
         initial_extensions = [
-            "netra.cogs.owner.owner",
-            "netra.cogs.moderation.moderation",
-            "netra.cogs.automod.automod",
-            "netra.cogs.utility.utility",
-            "netra.cogs.reminders.reminders",
-            "netra.cogs.tickets.tickets",
-            "netra.cogs.music.music",
+            "cogs.owner.owner",
+            "cogs.moderation.moderation",
+            "cogs.automod.automod",
+            "cogs.utility.utility",
+            "cogs.reminders.reminders",
+            "cogs.tickets.tickets",
+            "cogs.music.music",
         ]
 
         for ext in initial_extensions:

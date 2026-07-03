@@ -4,7 +4,7 @@ from discord.ext import commands
 import logging
 from typing import Optional
 
-from netra.core.bot import Netra
+from core.bot import Netra
 
 log = logging.getLogger(__name__)
 

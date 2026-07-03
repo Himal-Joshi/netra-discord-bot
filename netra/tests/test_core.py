@@ -1,5 +1,5 @@
 import pytest
-from netra.core.i18n import i18n
+from core.i18n import i18n
 
 def test_i18n_load():
     # Verify that the bundle for 'en' is loaded

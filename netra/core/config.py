@@ -43,6 +43,15 @@ class Settings(BaseSettings):
     def parse_owner_ids(cls, v):
         if isinstance(v, str):
             return [int(i.strip()) for i in v.split(",") if i.strip()]
+        if isinstance(v, int):
+            return [v]
+        return v
+
+    @field_validator("DEFAULT_GUILD_ID", mode="before")
+    @classmethod
+    def parse_guild_id(cls, v):
+        if isinstance(v, str) and not v.strip():
+            return None
         return v
 
 settings = Settings()

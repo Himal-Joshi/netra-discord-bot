@@ -5,7 +5,7 @@ import logging
 from typing import Optional
 import re
 
-from netra.core.bot import Netra
+from core.bot import Netra
 
 log = logging.getLogger(__name__)
 

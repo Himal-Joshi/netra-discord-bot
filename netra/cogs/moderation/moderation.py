@@ -5,8 +5,8 @@ import logging
 from typing import Optional
 from datetime import timedelta
 
-from netra.core.bot import Netra
-from netra.models.moderation import Warning, ModLog
+from core.bot import Netra
+from models.moderation import Warning, ModLog
 from sqlalchemy import select
 
 log = logging.getLogger(__name__)

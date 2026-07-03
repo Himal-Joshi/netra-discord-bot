@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional
 from sqlalchemy import BigInteger, String, ForeignKey, DateTime
 from sqlalchemy.orm import Mapped, mapped_column
-from netra.models.base import Base
+from models.base import Base
 
 class Warning(Base):
     __tablename__ = "warnings"

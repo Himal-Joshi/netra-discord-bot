@@ -8,8 +8,10 @@ A modern intelligent guardian of Discord communities. Built with Clean Architect
 
 - **Moderation**: Advanced moderation tools with AutoMod, Anti-Spam, and Anti-Raid.
 - **Utility**: Comprehensive server management and utility commands.
-- **Reminder System**: Natural language parsing for persistent reminders.
-- **Music**: High-quality music playback with session restoration.
+- **Dynamic Help System**: Intelligent `/help` command that generates copy-pasteable examples based on command parameters and their data types.
+- **Reminder System**: Natural language parsing (`dateparser`) for persistent database-backed reminders, featuring ephemeral confirmation messages for privacy.
+- **Announcement Scheduler**: Advanced `/announce` command for Administrators to schedule future server-wide announcements, complete with role or `@everyone` pings.
+- **Music Queue System**: High-quality YouTube music playback with a full queue system (`/play`, `/pause`, `/resume`, `/skip`, `/queue`, `/end`) powered by `yt-dlp`.
 - **Tickets**: Button-based ticket system with transcript generation.
 - **Dashboard**: FastAPI-based web dashboard for configuration.
 - **Localization**: Multi-language support using Fluent.
@@ -19,7 +21,6 @@ A modern intelligent guardian of Discord communities. Built with Clean Architect
 
 - Python 3.12+
 - discord.py
-- SQLAlchemy (Async)
 - FastAPI
 - PostgreSQL / SQLite
 - Docker & Docker Compose

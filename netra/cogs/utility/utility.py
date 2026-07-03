@@ -42,5 +42,94 @@ class Utility(commands.Cog):
         embed.add_field(name="Roles", value=", ".join([role.mention for role in member.roles[1:10]]) + ("..." if len(member.roles) > 10 else ""))
         await interaction.response.send_message(embed=embed)
 
+    @app_commands.command(name="help", description="Get a list of commands and how to use them")
+    async def help_command(self, interaction: discord.Interaction, command_name: Optional[str] = None):
+        if command_name:
+            found_cmd = None
+            for cmd in self.bot.tree.walk_commands():
+                if cmd.name == command_name and isinstance(cmd, app_commands.Command):
+                    found_cmd = cmd
+                    break
+            
+            if not found_cmd:
+                await interaction.response.send_message(f"Command `{command_name}` not found.", ephemeral=True)
+                return
+            
+            embed = discord.Embed(title=f"Help: /{found_cmd.name}", description=found_cmd.description or "No description provided.", color=discord.Color.blue())
+            
+            params_info = []
+            example_cmd = f"/{found_cmd.name}"
+            
+            for param in found_cmd.parameters:
+                req = "Required" if param.required else "Optional"
+                
+                # Determine type name and realistic example value
+                type_name = "Text"
+                example_val = '"value"'
+                
+                if param.type == discord.AppCommandOptionType.user:
+                    type_name = "User"
+                    example_val = "@User"
+                elif param.type == discord.AppCommandOptionType.channel:
+                    type_name = "Channel"
+                    example_val = "#channel"
+                elif param.type == discord.AppCommandOptionType.role:
+                    type_name = "Role"
+                    example_val = "@Role"
+                elif param.type == discord.AppCommandOptionType.integer:
+                    type_name = "Integer Number"
+                    example_val = "5"
+                elif param.type == discord.AppCommandOptionType.number:
+                    type_name = "Decimal Number"
+                    example_val = "3.5"
+                elif param.type == discord.AppCommandOptionType.boolean:
+                    type_name = "True/False"
+                    example_val = "True"
+                elif param.type == discord.AppCommandOptionType.string:
+                    type_name = "Text"
+                    if "time" in param.name.lower():
+                        example_val = '"10m"'
+                    elif "reason" in param.name.lower() or "message" in param.name.lower():
+                        example_val = '"Hello there!"'
+                    else:
+                        example_val = '"some text"'
+                
+                params_info.append(f"**{param.name}** ({type_name}, {req}): {param.description}")
+                
+                if param.required:
+                    example_cmd += f" {param.name}:{example_val}"
+                else:
+                    example_cmd += f" [{param.name}:{example_val}]"
+            
+            if params_info:
+                embed.add_field(name="Parameters", value="\n".join(params_info), inline=False)
+            
+            embed.add_field(name="Example", value=f"`{example_cmd}`", inline=False)
+            
+            embed.set_footer(text="Tip: Use these parameters when typing the command in Discord.")
+            await interaction.response.send_message(embed=embed)
+        else:
+            embed = discord.Embed(
+                title="Netra Bot Help",
+                description="Use `/help command_name:<name>` to get detailed information on how to place values in specific commands.",
+                color=discord.Color.blue()
+            )
+            
+            cogs = {}
+            for cmd in self.bot.tree.walk_commands():
+                if isinstance(cmd, app_commands.Command):
+                    cog_name = "Other"
+                    if cmd.binding and isinstance(cmd.binding, commands.Cog):
+                        cog_name = cmd.binding.qualified_name
+                    
+                    if cog_name not in cogs:
+                        cogs[cog_name] = []
+                    cogs[cog_name].append(f"`/{cmd.name}`")
+            
+            for cog_name, cmds in sorted(cogs.items()):
+                embed.add_field(name=cog_name, value=", ".join(cmds), inline=False)
+                
+            await interaction.response.send_message(embed=embed)
+
 async def setup(bot: Netra):
     await bot.add_cog(Utility(bot))

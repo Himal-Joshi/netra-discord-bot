@@ -51,35 +51,120 @@ class YTDLSource(discord.PCMVolumeTransformer):
 class Music(commands.Cog):
     def __init__(self, bot: Netra):
         self.bot = bot
-        self.queues: Dict[int, List] = {}
+        self.queues: Dict[int, List[dict]] = {}
 
-    @app_commands.command(name="play", description="Play a song from YouTube")
+    def get_queue(self, guild_id: int) -> List[dict]:
+        if guild_id not in self.queues:
+            self.queues[guild_id] = []
+        return self.queues[guild_id]
+
+    def play_next(self, interaction: discord.Interaction):
+        vc = interaction.guild.voice_client
+        if not vc or not vc.is_connected():
+            return
+
+        queue = self.get_queue(interaction.guild.id)
+        if not queue:
+            # Queue finished
+            coro = interaction.channel.send("Queue finished. Waiting for more songs...")
+            self.bot.loop.create_task(coro)
+            return
+
+        next_song = queue.pop(0)
+        
+        coro = self._play_song(interaction, next_song['search'], next_song['user'])
+        self.bot.loop.create_task(coro)
+
+    async def _play_song(self, interaction: discord.Interaction, search: str, user: str):
+        vc = interaction.guild.voice_client
+        if not vc or not vc.is_connected():
+            return
+
+        try:
+            player = await YTDLSource.from_url(search, loop=self.bot.loop, stream=True)
+            vc.play(player, after=lambda e: self.play_next(interaction))
+            await interaction.channel.send(f'🎵 Now playing: **{player.title}** (Requested by {user})')
+        except Exception as e:
+            log.error(f"Music error: {e}")
+            await interaction.channel.send(f"An error occurred playing the next song: {e}")
+            self.play_next(interaction)
+
+    @app_commands.command(name="play", description="Play a song from YouTube or add it to the queue")
+    @app_commands.describe(search="The name or URL of the song to play")
     async def play(self, interaction: discord.Interaction, search: str):
         await interaction.response.defer()
 
         if not interaction.user.voice:
-            return await interaction.followup.send("You are not connected to a voice channel.")
+            return await interaction.followup.send("You must be connected to a voice channel.")
 
         vc = interaction.guild.voice_client
         if not vc:
             vc = await interaction.user.voice.channel.connect()
 
-        try:
-            player = await YTDLSource.from_url(search, loop=self.bot.loop, stream=True)
-            vc.play(player, after=lambda e: log.error(f'Player error: {e}') if e else None)
-            await interaction.followup.send(f'Now playing: **{player.title}**')
-        except Exception as e:
-            log.error(f"Music error: {e}")
-            await interaction.followup.send(f"An error occurred: {e}")
+        queue = self.get_queue(interaction.guild.id)
 
-    @app_commands.command(name="stop", description="Stop the music and disconnect")
-    async def stop(self, interaction: discord.Interaction):
+        if vc.is_playing() or vc.is_paused():
+            queue.append({'search': search, 'user': interaction.user.name})
+            await interaction.followup.send(f'✅ Added to queue: **{search}** (Position: {len(queue)})')
+        else:
+            await interaction.followup.send(f'Searching for **{search}**...')
+            await self._play_song(interaction, search, interaction.user.name)
+
+    @app_commands.command(name="pause", description="Pause the currently playing song")
+    async def pause(self, interaction: discord.Interaction):
         vc = interaction.guild.voice_client
+        if vc and vc.is_playing():
+            vc.pause()
+            await interaction.response.send_message("⏸️ Paused the music.")
+        else:
+            await interaction.response.send_message("Nothing is currently playing.", ephemeral=True)
+
+    @app_commands.command(name="resume", description="Resume the paused song")
+    async def resume(self, interaction: discord.Interaction):
+        vc = interaction.guild.voice_client
+        if vc and vc.is_paused():
+            vc.resume()
+            await interaction.response.send_message("▶️ Resumed the music.")
+        else:
+            await interaction.response.send_message("The music is not paused.", ephemeral=True)
+
+    @app_commands.command(name="skip", description="Skip the current song")
+    async def skip(self, interaction: discord.Interaction):
+        vc = interaction.guild.voice_client
+        if vc and (vc.is_playing() or vc.is_paused()):
+            vc.stop() # This triggers the 'after' callback which calls play_next
+            await interaction.response.send_message("⏭️ Skipped the current song.")
+        else:
+            await interaction.response.send_message("Nothing to skip.", ephemeral=True)
+
+    @app_commands.command(name="queue", description="View the upcoming songs in the queue")
+    async def queue(self, interaction: discord.Interaction):
+        queue = self.get_queue(interaction.guild.id)
+        if not queue:
+            return await interaction.response.send_message("The queue is currently empty.", ephemeral=True)
+            
+        embed = discord.Embed(title=f"Music Queue for {interaction.guild.name}", color=discord.Color.blurple())
+        
+        queue_text = ""
+        for i, song in enumerate(queue[:10]): # Show top 10
+            queue_text += f"**{i+1}.** {song['search']} *(Req by {song['user']})*\n"
+            
+        if len(queue) > 10:
+            queue_text += f"\n*...and {len(queue) - 10} more songs.*"
+            
+        embed.description = queue_text
+        await interaction.response.send_message(embed=embed)
+
+    @app_commands.command(name="end", description="Stop the music, clear the queue, and disconnect")
+    async def end(self, interaction: discord.Interaction):
+        vc = interaction.guild.voice_client
+        self.get_queue(interaction.guild.id).clear()
+        
         if vc:
             await vc.disconnect()
-            await interaction.response.send_message("Stopped the music and disconnected.")
+            await interaction.response.send_message("🛑 Stopped the music, cleared the queue, and disconnected.")
         else:
-            await interaction.response.send_message("Not playing anything.")
+            await interaction.response.send_message("I am not in a voice channel.", ephemeral=True)
 
 async def setup(bot: Netra):
     await bot.add_cog(Music(bot))

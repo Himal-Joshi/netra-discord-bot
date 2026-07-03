@@ -1,0 +1,52 @@
+[project]
+name = "netra"
+version = "0.1.0"
+description = "A modern intelligent guardian of Discord communities."
+authors = [{ name = "Jules", email = "jules@example.com" }]
+dependencies = [
+    "discord.py>=2.3.2",
+    "sqlalchemy>=2.0.25",
+    "alembic>=1.13.1",
+    "pydantic-settings>=2.1.0",
+    "python-dotenv>=1.0.1",
+    "apscheduler>=3.10.4",
+    "aiohttp>=3.9.1",
+    "yt-dlp>=2023.12.30",
+    "dateparser>=1.2.0",
+    "fluent.runtime>=0.4.0",
+    "prometheus-client>=0.19.0",
+    "fastapi>=0.109.0",
+    "uvicorn>=0.27.0",
+    "aiosqlite>=0.19.0",
+    "asyncpg>=0.29.0",
+    "sentry-sdk>=1.39.1",
+    "colorlog>=6.8.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.4",
+    "pytest-asyncio>=0.23.3",
+    "black>=23.12.1",
+    "ruff>=0.1.11",
+    "mypy>=1.8.0",
+    "coverage>=7.4.0",
+]
+
+[tool.black]
+line-length = 100
+target-version = ['py312']
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+select = ["E", "F", "I", "N", "W", "B", "UP", "ASYNC"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

@@ -10,7 +10,6 @@ from api.dependencies import verify_guild_admin
 router = APIRouter()
 
 class TicketSettingsUpdate(BaseModel):
-    category_id: Optional[int] = None
     transcript_channel_id: Optional[int] = None
     moderator_role_id: Optional[int] = None
 
@@ -27,14 +26,12 @@ async def get_ticket_settings(guild_id: int, is_admin: bool = Depends(verify_gui
         if not settings:
             return {
                 "guild_id": guild_id,
-                "category_id": None,
                 "transcript_channel_id": None,
                 "moderator_role_id": None
             }
             
         return {
             "guild_id": settings.guild_id,
-            "category_id": settings.category_id,
             "transcript_channel_id": settings.transcript_channel_id,
             "moderator_role_id": settings.moderator_role_id
         }
@@ -52,8 +49,6 @@ async def update_ticket_settings(guild_id: int, config: TicketSettingsUpdate, is
             settings = TicketSettings(guild_id=guild_id)
             session.add(settings)
             
-        if config.category_id is not None:
-            settings.category_id = config.category_id
         if config.transcript_channel_id is not None:
             settings.transcript_channel_id = config.transcript_channel_id
         if config.moderator_role_id is not None:

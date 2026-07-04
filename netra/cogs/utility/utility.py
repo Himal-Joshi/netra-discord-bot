@@ -23,6 +23,9 @@ class Utility(commands.Cog):
     @app_commands.guild_only()
     async def serverinfo(self, interaction: discord.Interaction):
         guild = interaction.guild
+        if not guild:
+            return await interaction.response.send_message("This command can only be used in a server.", ephemeral=True)
+            
         embed = discord.Embed(title=f"Server Info: {guild.name}", color=discord.Color.blue())
         embed.set_thumbnail(url=guild.icon.url if guild.icon else None)
         embed.add_field(name="Owner", value=guild.owner.mention if guild.owner else "Unknown")
@@ -32,14 +35,59 @@ class Utility(commands.Cog):
         embed.set_footer(text=f"ID: {guild.id} | Created at: {guild.created_at.strftime('%Y-%m-%d')}")
         await interaction.response.send_message(embed=embed)
 
+    @app_commands.command(name="active-members", description="Get a list of currently active members in the server")
+    @app_commands.guild_only()
+    async def active_members(self, interaction: discord.Interaction):
+        guild = interaction.guild
+        if not guild:
+            return await interaction.response.send_message("This command can only be used in a server.", ephemeral=True)
+        
+        # Filter for members who are not bots and are not offline
+        active_members = [
+            member for member in guild.members 
+            if not member.bot and member.status != discord.Status.offline
+        ]
+        
+        count = len(active_members)
+        
+        embed = discord.Embed(
+            title=f"Active Members ({count})",
+            color=discord.Color.green(),
+            description="Members currently Online, Idle, or on Do Not Disturb."
+        )
+        
+        if count == 0:
+            embed.description = "No members are currently active."
+        else:
+            # We cap the list at 50 to prevent hitting Discord's 1024 character limit for fields
+            member_mentions = [member.mention for member in active_members[:50]]
+            list_text = ", ".join(member_mentions)
+            
+            # If the text is still too long, truncate it safely
+            if len(list_text) > 1000:
+                list_text = list_text[:1000] + "..."
+                
+            embed.add_field(name=f"Active List (Showing {min(50, count)})", value=list_text)
+            
+        await interaction.response.send_message(embed=embed)
+
     @app_commands.command(name="userinfo", description="Get information about a user")
     async def userinfo(self, interaction: discord.Interaction, member: Optional[discord.Member] = None):
-        member = member or interaction.user
-        embed = discord.Embed(title=f"User Info: {member.name}", color=member.color)
-        embed.set_thumbnail(url=member.display_avatar.url)
-        embed.add_field(name="ID", value=str(member.id))
-        embed.add_field(name="Joined At", value=member.joined_at.strftime('%Y-%m-%d') if member.joined_at else "N/A")
-        embed.add_field(name="Roles", value=", ".join([role.mention for role in member.roles[1:10]]) + ("..." if len(member.roles) > 10 else ""))
+        target = member or interaction.user
+        color = getattr(target, 'color', discord.Color.default())
+        embed = discord.Embed(title=f"User Info: {target.name}", color=color)
+        embed.set_thumbnail(url=target.display_avatar.url)
+        embed.add_field(name="ID", value=str(target.id))
+        
+        joined_at = getattr(target, 'joined_at', None)
+        embed.add_field(name="Joined At", value=joined_at.strftime('%Y-%m-%d') if joined_at else "N/A")
+        
+        roles = getattr(target, 'roles', [])
+        if len(roles) > 1:
+            embed.add_field(name="Roles", value=", ".join([role.mention for role in roles[1:10]]) + ("..." if len(roles) > 10 else ""))
+        else:
+            embed.add_field(name="Roles", value="None")
+            
         await interaction.response.send_message(embed=embed)
 
     @app_commands.command(name="help", description="Get a list of commands and how to use them")
@@ -111,23 +159,35 @@ class Utility(commands.Cog):
         else:
             embed = discord.Embed(
                 title="Netra Bot Help",
-                description="Use `/help command_name:<name>` to get detailed information on how to place values in specific commands.",
+                description="Use `/help command_name:<name>` to get detailed information on how to use specific commands.\n\n*Note: Admin commands are natively hidden from the Discord `/` auto-complete menu for regular users.*",
                 color=discord.Color.blue()
             )
             
-            cogs = {}
+            user_cmds = []
+            admin_cmds = []
+            
             for cmd in self.bot.tree.walk_commands():
                 if isinstance(cmd, app_commands.Command):
-                    cog_name = "Other"
-                    if cmd.binding and isinstance(cmd.binding, commands.Cog):
-                        cog_name = cmd.binding.qualified_name
+                    is_admin = False
                     
-                    if cog_name not in cogs:
-                        cogs[cog_name] = []
-                    cogs[cog_name].append(f"`/{cmd.name}`")
+                    # Check if command has default_permissions set to something restricting
+                    if getattr(cmd, 'default_permissions', None) is not None and getattr(cmd.default_permissions, 'value', 0) != 0:
+                        is_admin = True
+                        
+                    # Check close-ticket and setticket-moderator manually since they rely on DB-based roles or might not be caught
+                    if cmd.name in ("close-ticket", "setticket-moderator", "setup-tickets"):
+                        is_admin = True
+
+                    cmd_text = f"**`/{cmd.name}`** - {cmd.description}"
+                    if is_admin:
+                        admin_cmds.append(cmd_text)
+                    else:
+                        user_cmds.append(cmd_text)
             
-            for cog_name, cmds in sorted(cogs.items()):
-                embed.add_field(name=cog_name, value=", ".join(cmds), inline=False)
+            if user_cmds:
+                embed.add_field(name="👥 User Commands", value="\n".join(user_cmds), inline=False)
+            if admin_cmds:
+                embed.add_field(name="🛡️ Admin & Moderator Commands", value="\n".join(admin_cmds), inline=False)
                 
             await interaction.response.send_message(embed=embed)
 

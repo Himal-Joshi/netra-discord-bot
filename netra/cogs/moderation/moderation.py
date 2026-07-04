@@ -16,9 +16,13 @@ class Moderation(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="kick", description="Kick a member from the server")
+    @app_commands.default_permissions(kick_members=True)
     @app_commands.checks.has_permissions(kick_members=True)
     @app_commands.checks.bot_has_permissions(kick_members=True)
     async def kick(self, interaction: discord.Interaction, member: discord.Member, reason: Optional[str] = None):
+        if not interaction.guild or not isinstance(interaction.user, discord.Member):
+            return await interaction.response.send_message("This command can only be used in a server.", ephemeral=True)
+            
         if member.top_role >= interaction.user.top_role:
             return await interaction.response.send_message("You cannot kick this member due to role hierarchy.", ephemeral=True)
 
@@ -34,8 +38,12 @@ class Moderation(commands.Cog):
             await interaction.response.send_message("Kicking failed due to an error.", ephemeral=True)
 
     @app_commands.command(name="ban", description="Ban a member from the server")
+    @app_commands.default_permissions(ban_members=True)
     @app_commands.checks.has_permissions(ban_members=True)
     async def ban(self, interaction: discord.Interaction, member: discord.Member, reason: Optional[str] = None, delete_messages_days: int = 0):
+        if not interaction.guild or not isinstance(interaction.user, discord.Member):
+            return await interaction.response.send_message("This command can only be used in a server.", ephemeral=True)
+            
         if member.top_role >= interaction.user.top_role:
             return await interaction.response.send_message("You cannot ban this member due to role hierarchy.", ephemeral=True)
 
@@ -43,8 +51,12 @@ class Moderation(commands.Cog):
         await interaction.response.send_message(f"Successfully banned {member.mention} for: {reason or 'No reason provided'}")
 
     @app_commands.command(name="timeout", description="Timeout a member")
+    @app_commands.default_permissions(moderate_members=True)
     @app_commands.checks.has_permissions(moderate_members=True)
     async def timeout(self, interaction: discord.Interaction, member: discord.Member, minutes: int, reason: Optional[str] = None):
+        if not interaction.guild or not isinstance(interaction.user, discord.Member):
+            return await interaction.response.send_message("This command can only be used in a server.", ephemeral=True)
+            
         if member.top_role >= interaction.user.top_role:
             return await interaction.response.send_message("You cannot timeout this member due to role hierarchy.", ephemeral=True)
 

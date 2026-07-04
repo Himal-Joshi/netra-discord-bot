@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from sqlalchemy import BigInteger, String, DateTime, JSON
 from sqlalchemy.orm import Mapped, mapped_column
@@ -13,7 +13,7 @@ class Notice(Base):
     content: Mapped[str] = mapped_column(String(2000))
     template_id: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     scheduled_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 class Ticket(Base):
     __tablename__ = "tickets"
@@ -24,5 +24,12 @@ class Ticket(Base):
     channel_id: Mapped[int] = mapped_column(BigInteger, unique=True)
     category: Mapped[str] = mapped_column(String(50)) # support, appeal, etc.
     status: Mapped[str] = mapped_column(String(20), default="open") # open, closed
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     closed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+class TicketSettings(Base):
+    __tablename__ = "ticket_settings"
+
+    guild_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    moderator_role_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
+    transcript_channel_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)

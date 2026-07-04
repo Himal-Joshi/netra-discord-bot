@@ -19,6 +19,7 @@ class Netra(commands.AutoShardedBot):
         intents.message_content = True
         intents.members = True
         intents.guilds = True
+        intents.presences = True
 
         super().__init__(
             command_prefix=commands.when_mentioned_or(settings.BOT_PREFIX),
@@ -61,12 +62,18 @@ class Netra(commands.AutoShardedBot):
                 log.error(f"Failed to load extension {ext}: {e}", exc_info=True)
 
     async def on_ready(self):
-        log.info(f"Logged in as {self.user} (ID: {self.user.id})")
+        if self.user:
+            log.info(f"Logged in as {self.user} (ID: {self.user.id})")
         log.info(f"Connected to {len(self.guilds)} guilds")
         GUILD_COUNT.set(len(self.guilds))
+        
+        # Set the "Listening to /help" status
+        activity = discord.Activity(type=discord.ActivityType.listening, name="/help")
+        await self.change_presence(activity=activity)
 
     async def on_command_completion(self, ctx: commands.Context):
-        COMMANDS_EXECUTED.labels(command_name=ctx.command.qualified_name, guild_id=ctx.guild.id if ctx.guild else "DM").inc()
+        if ctx.command:
+            COMMANDS_EXECUTED.labels(command_name=ctx.command.qualified_name, guild_id=ctx.guild.id if ctx.guild else "DM").inc()
         LATENCY.set(self.latency)
 
     async def close(self):

@@ -138,9 +138,19 @@ class Music(commands.Cog):
             return await interaction.followup.send("❌ You must be in a voice channel first.")
 
         player: wavelink.Player
-        if not interaction.guild.voice_client:
+        existing_vc = interaction.guild.voice_client
+
+        # Force-disconnect stale non-wavelink voice clients (leftover from old sessions)
+        if existing_vc and not isinstance(existing_vc, wavelink.Player):
+            await existing_vc.disconnect(force=True)
+            existing_vc = None
+
+        if not existing_vc:
             try:
-                player = await interaction.user.voice.channel.connect(cls=wavelink.Player)
+                player = await interaction.user.voice.channel.connect(
+                    cls=wavelink.Player,
+                    self_deaf=True,   # best practice: bot deafens itself
+                )
             except Exception as e:
                 return await interaction.followup.send(
                     f"❌ Could not connect to voice channel: {e}"
@@ -148,7 +158,7 @@ class Music(commands.Cog):
             player.autoplay = wavelink.AutoPlayMode.partial  # queue-only, no recommendations
             player.inactive_timeout = ALONE_TIMEOUT          # 2-min inactivity → disconnect
         else:
-            player = interaction.guild.voice_client  # type: ignore
+            player = existing_vc  # type: ignore
 
         # Store text channel on player for event announcements
         player.text_channel = interaction.channel

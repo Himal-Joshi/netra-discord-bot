@@ -37,6 +37,8 @@ FFMPEG_EXECUTABLE = _find_ffmpeg()
 log.info(f"Using ffmpeg: {FFMPEG_EXECUTABLE}")
 
 # yt-dlp options
+# extractor_args: use the Android YouTube client which does NOT trigger bot-detection
+# on data-center IPs (Oracle, AWS, etc.) — avoids the "Sign in to confirm" error.
 YDL_OPTIONS = {
     'format': 'bestaudio/best',
     'noplaylist': True,
@@ -47,7 +49,15 @@ YDL_OPTIONS = {
     'no_warnings': True,
     'default_search': 'ytsearch',
     'source_address': '0.0.0.0',
-    'socket_timeout': 10,
+    'socket_timeout': 30,
+    'extractor_args': {
+        'youtube': {
+            'player_client': ['android', 'web'],
+        }
+    },
+    'http_headers': {
+        'User-Agent': 'com.google.android.youtube/17.36.4 (Linux; U; Android 12; GB) gzip',
+    },
 }
 
 FFMPEG_OPTIONS = {

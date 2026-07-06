@@ -68,10 +68,28 @@ class Music(commands.Cog):
     @commands.Cog.listener()
     async def on_wavelink_track_end(self, payload: wavelink.TrackEndEventPayload):
         player: wavelink.Player = payload.player
-        # AutoPlayMode.partial handles playing the next track automatically.
-        # If queue is empty after this, on_wavelink_inactive_player fires after inactive_timeout.
-        if not player.queue and not player.playing:
-            channel: Optional[discord.TextChannel] = getattr(player, 'text_channel', None)
+        channel: Optional[discord.TextChannel] = getattr(player, 'text_channel', None)
+
+        log.debug(f"[{player.guild.name}] Track ended — reason: {payload.reason}")
+
+        # Tell user if the track failed to load/stream
+        if payload.reason is wavelink.TrackEndReason.LOAD_FAILED:
+            if channel:
+                await channel.send(
+                    f"❌ Failed to stream **{payload.track.title}**. "
+                    "Lavalink could not load this track. Skipping..."
+                )
+
+        # AutoPlayMode.partial handles queue automatically.
+        # Announce queue-empty only when nothing is left and track finished normally.
+        if (
+            not player.queue
+            and not player.playing
+            and payload.reason not in (
+                wavelink.TrackEndReason.REPLACED,
+                wavelink.TrackEndReason.STOPPED,
+            )
+        ):
             if channel:
                 await channel.send(
                     "⏹️ Queue finished. Waiting for more songs… "
@@ -163,9 +181,8 @@ class Music(commands.Cog):
             )
         else:
             await player.play(track)
-            await interaction.followup.send(
-                f"🎵 Now playing: **{track.title}** by {track.author}"
-            )
+            # Don't announce here — on_wavelink_track_start will do it
+            await interaction.followup.send(f"🔍 Loading **{track.title}**…")
 
     @app_commands.command(name="pause", description="Pause the currently playing song")
     async def pause(self, interaction: discord.Interaction):

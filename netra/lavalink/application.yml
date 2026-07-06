@@ -11,9 +11,9 @@ plugins:
     allowDirectVideoIds: true
     allowDirectPlaylistIds: true
     clients:
-      - WEB_CREATOR      # OAuth-compatible — primary client
-      - WEB              # OAuth-compatible — fallback
-      - TVHTML5EMBEDDED  # No-auth fallback
+      - WEB              # OAuth-compatible — uses saved token
+      - MUSIC            # YouTube Music client (WEB_REMIX internally)
+      - IOS              # No-auth fallback
     oauth:
       enabled: true
       skipInitialization: true   # Token already obtained — won't prompt on restart

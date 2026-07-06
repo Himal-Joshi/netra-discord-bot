@@ -1,0 +1,47 @@
+server:
+  port: 2333
+  address: 127.0.0.1
+  http2:
+    enabled: false
+
+plugins:
+  youtube:
+    enabled: true
+    allowSearch: true
+    allowDirectVideoIds: true
+    allowDirectPlaylistIds: true
+    clients:
+      # TVHTML5EMBEDDED works on server IPs without cookies or login
+      - TVHTML5EMBEDDED
+      - ANDROID_TESTSUITE
+      - IOS
+      - WEB
+
+lavalink:
+  plugins:
+    - dependency: "dev.lavalink.youtube:youtube-plugin:1.13.1"
+      snapshot: false
+  pluginsDir: ./plugins
+  server:
+    password: "youshallnotpass"
+    sources:
+      youtube: false       # disabled — handled by youtube-source plugin above
+      bandcamp: true
+      soundcloud: true
+      twitch: true
+      vimeo: true
+      http: true
+      local: false
+    bufferDurationMs: 400
+    frameBufferDurationMs: 5000
+    playerUpdateInterval: 5
+    youtubeSearchEnabled: true
+    soundcloudSearchEnabled: true
+    gc-warnings: true
+
+logging:
+  level:
+    root: INFO
+    lavalink: INFO
+  request:
+    enabled: false

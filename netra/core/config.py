@@ -38,6 +38,11 @@ class Settings(BaseSettings):
     DASHBOARD_PORT: int = 8000
     SECRET_KEY: str = "dev_secret_key"
 
+    # Lavalink
+    LAVALINK_HOST: str = "127.0.0.1"
+    LAVALINK_PORT: int = 2333
+    LAVALINK_PASSWORD: str = "youshallnotpass"
+
     @field_validator("OWNER_IDS", mode="before")
     @classmethod
     def parse_owner_ids(cls, v):

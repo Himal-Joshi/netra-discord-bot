@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands, tasks
 import aiohttp
 import time
+import wavelink
 from typing import List, Optional
 import logging
 
@@ -45,7 +46,17 @@ class Netra(commands.AutoShardedBot):
         # Initialize Database
         await init_db()
 
-        # Load Cogs
+        # Connect to Lavalink
+        try:
+            nodes = [wavelink.Node(
+                uri=f"http://{settings.LAVALINK_HOST}:{settings.LAVALINK_PORT}",
+                password=settings.LAVALINK_PASSWORD,
+            )]
+            await wavelink.Pool.connect(nodes=nodes, client=self, cache_capacity=100)
+            log.info(f"Connected to Lavalink at {settings.LAVALINK_HOST}:{settings.LAVALINK_PORT}")
+        except Exception as e:
+            log.error(f"Failed to connect to Lavalink: {e}. Music features will be unavailable.")
+
         initial_extensions = [
             "cogs.owner.owner",
             "cogs.moderation.moderation",

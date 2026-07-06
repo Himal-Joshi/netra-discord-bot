@@ -11,12 +11,12 @@ plugins:
     allowDirectVideoIds: true
     allowDirectPlaylistIds: true
     clients:
-      - MUSIC              # Uses OAuth2 token — best for server IPs
-      - WEB                # Uses OAuth2 token as fallback
-      - TVHTML5EMBEDDED    # No-auth fallback
+      - WEB_CREATOR      # OAuth-compatible — primary client
+      - WEB              # OAuth-compatible — fallback
+      - TVHTML5EMBEDDED  # No-auth fallback
     oauth:
       enabled: true
-      skipInitialization: false   # Lavalink will print a Google login URL on first start
+      skipInitialization: true   # Token already obtained — won't prompt on restart
 
 lavalink:
   plugins:

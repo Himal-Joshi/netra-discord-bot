@@ -35,41 +35,7 @@ class Utility(commands.Cog):
         embed.set_footer(text=f"ID: {guild.id} | Created at: {guild.created_at.strftime('%Y-%m-%d')}")
         await interaction.response.send_message(embed=embed)
 
-    @app_commands.command(name="active-members", description="Get a list of currently active members in the server")
-    @app_commands.guild_only()
-    async def active_members(self, interaction: discord.Interaction):
-        guild = interaction.guild
-        if not guild:
-            return await interaction.response.send_message("This command can only be used in a server.", ephemeral=True)
-        
-        # Filter for members who are not bots and are not offline
-        active_members = [
-            member for member in guild.members 
-            if not member.bot and member.status != discord.Status.offline
-        ]
-        
-        count = len(active_members)
-        
-        embed = discord.Embed(
-            title=f"Active Members ({count})",
-            color=discord.Color.green(),
-            description="Members currently Online, Idle, or on Do Not Disturb."
-        )
-        
-        if count == 0:
-            embed.description = "No members are currently active."
-        else:
-            # We cap the list at 50 to prevent hitting Discord's 1024 character limit for fields
-            member_mentions = [member.mention for member in active_members[:50]]
-            list_text = ", ".join(member_mentions)
-            
-            # If the text is still too long, truncate it safely
-            if len(list_text) > 1000:
-                list_text = list_text[:1000] + "..."
-                
-            embed.add_field(name=f"Active List (Showing {min(50, count)})", value=list_text)
-            
-        await interaction.response.send_message(embed=embed)
+
 
     @app_commands.command(name="userinfo", description="Get information about a user")
     async def userinfo(self, interaction: discord.Interaction, member: Optional[discord.Member] = None):

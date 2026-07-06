@@ -1,5 +1,5 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 import aiohttp
 import time
 from typing import List, Optional
@@ -19,12 +19,14 @@ class Netra(commands.AutoShardedBot):
         intents.message_content = True
         intents.members = True
         intents.guilds = True
-        intents.presences = True
 
         super().__init__(
             command_prefix=commands.when_mentioned_or(settings.BOT_PREFIX),
             intents=intents,
             help_command=None,
+            chunk_guilds_at_startup=False,
+            max_messages=100,
+            member_cache_flags=discord.MemberCacheFlags.from_intents(intents),
         )
         self.session: Optional[aiohttp.ClientSession] = None
         self.start_time = time.time()
@@ -35,7 +37,7 @@ class Netra(commands.AutoShardedBot):
 
         # Initialize Sentry
         if settings.SENTRY_DSN:
-            sentry_sdk.init(dsn=settings.SENTRY_DSN, traces_sample_rate=1.0)
+            sentry_sdk.init(dsn=settings.SENTRY_DSN, traces_sample_rate=0.1)
 
         # Start Metrics Server
         start_metrics_server(port=8001)
@@ -71,10 +73,23 @@ class Netra(commands.AutoShardedBot):
         activity = discord.Activity(type=discord.ActivityType.listening, name="/help")
         await self.change_presence(activity=activity)
 
+        # Start the background metrics loop
+        if not self.update_metrics.is_running():
+            self.update_metrics.start()
+
+    @tasks.loop(seconds=30)
+    async def update_metrics(self):
+        """Update Prometheus metrics in the background instead of per-command."""
+        LATENCY.set(self.latency)
+        GUILD_COUNT.set(len(self.guilds))
+
+    @update_metrics.before_loop
+    async def before_update_metrics(self):
+        await self.wait_until_ready()
+
     async def on_command_completion(self, ctx: commands.Context):
         if ctx.command:
             COMMANDS_EXECUTED.labels(command_name=ctx.command.qualified_name, guild_id=ctx.guild.id if ctx.guild else "DM").inc()
-        LATENCY.set(self.latency)
 
     async def close(self):
         await super().close()

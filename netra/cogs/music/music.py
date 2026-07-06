@@ -20,15 +20,15 @@ YDL_OPTIONS = {
     'quiet': True,
     'no_warnings': True,
     'default_search': 'auto',
-    'source_address': '0.0.0.0'
+    'source_address': '0.0.0.0',
+    'extract_flat': 'in_playlist',
+    'socket_timeout': 10,
 }
 
 FFMPEG_OPTIONS = {
     'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
-    'options': '-vn'
+    'options': '-vn -bufsize 64k'
 }
-
-ytdl = yt_dlp.YoutubeDL(YDL_OPTIONS)
 
 class YTDLSource(discord.PCMVolumeTransformer):
     def __init__(self, source, *, data, volume=0.5):
@@ -40,6 +40,8 @@ class YTDLSource(discord.PCMVolumeTransformer):
     @classmethod
     async def from_url(cls, url, *, loop=None, stream=False):
         loop = loop or asyncio.get_event_loop()
+        # Create a fresh instance per call to avoid lock contention across guilds
+        ytdl = yt_dlp.YoutubeDL(YDL_OPTIONS)
         data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=not stream))
 
         if 'entries' in data:

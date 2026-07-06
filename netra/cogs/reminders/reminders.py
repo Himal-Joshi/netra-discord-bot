@@ -63,7 +63,10 @@ class Reminders(commands.Cog):
         jobstores = {
             'default': SQLAlchemyJobStore(url=settings.DATABASE_URL.replace("+aiosqlite", ""))
         }
-        self.scheduler = AsyncIOScheduler(jobstores=jobstores)
+        self.scheduler = AsyncIOScheduler(
+            jobstores=jobstores,
+            job_defaults={'misfire_grace_time': 60, 'coalesce': True},
+        )
         self.scheduler.start()
 
     @app_commands.command(name="announce", description="Schedule an announcement in a specific channel")

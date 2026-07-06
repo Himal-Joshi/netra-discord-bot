@@ -50,11 +50,8 @@ YDL_OPTIONS = {
     'socket_timeout': 30,
     'extractor_args': {
         'youtube': {
-            'player_client': ['android', 'web'],
+            'player_client': ['ios', 'android', 'web'],
         }
-    },
-    'http_headers': {
-        'User-Agent': 'com.google.android.youtube/17.36.4 (Linux; U; Android 12; GB) gzip',
     },
 }
 
@@ -82,31 +79,60 @@ class YTDLSource(discord.PCMVolumeTransformer):
     @classmethod
     async def from_url(cls, url, *, loop=None, stream=True):
         loop = loop or asyncio.get_event_loop()
+
+        # ── Step 1: Resolve search query → direct video URL ───────────────
+        # For text queries we do a fast flat search first (no bot-check needed).
+        # Direct YouTube/http URLs skip this step entirely.
+        if not url.startswith('http'):
+            search_opts = {
+                'quiet': True,
+                'no_warnings': True,
+                'extract_flat': True,      # only fetch metadata, not the stream
+                'noplaylist': True,
+                'socket_timeout': 30,
+                'default_search': 'ytsearch',
+            }
+            search_ytdl = yt_dlp.YoutubeDL(search_opts)
+            search_data = await loop.run_in_executor(
+                None, lambda: search_ytdl.extract_info(f'ytsearch1:{url}', download=False)
+            )
+
+            if not search_data:
+                raise Exception(f"No results found for **{url}**.")
+
+            entries = list(search_data.get('entries') or [])
+            if not entries or entries[0] is None:
+                raise Exception(f"No results found for **{url}**.")
+
+            first = entries[0]
+            # Build a proper YouTube watch URL from whatever identifier we have
+            video_id = first.get('id') or first.get('url', '')
+            if video_id.startswith('http'):
+                url = video_id
+            else:
+                url = f'https://www.youtube.com/watch?v={video_id}'
+
+        # ── Step 2: Extract the real audio stream URL from the video URL ──
+        # iOS/Android player clients bypass bot-detection on server IPs
+        # without needing cookies or a signed-in account.
         ytdl = yt_dlp.YoutubeDL(YDL_OPTIONS)
-
-        # Use ytsearch1: for plain text queries so we get exactly 1 result.
-        # URLs (http/https) are passed through unchanged.
-        search_query = url if url.startswith('http') else f'ytsearch1:{url}'
-
         data = await loop.run_in_executor(
-            None, lambda: ytdl.extract_info(search_query, download=not stream)
+            None, lambda: ytdl.extract_info(url, download=not stream)
         )
 
         if data is None:
-            raise Exception("No results found. Try a different search term.")
+            raise Exception("Could not load song info. Try again.")
 
+        # Shouldn't happen with noplaylist=True, but handle it anyway
         if 'entries' in data:
-            # Force-consume the generator/list so we don't get an empty iterator
             entries = list(data['entries'])
-            if not entries:
-                raise Exception("No results found. Try a different search term.")
+            if not entries or entries[0] is None:
+                raise Exception("Could not load song info. Try again.")
             data = entries[0]
-
-        if data is None:
-            raise Exception("Could not load song info. Try a different search term.")
 
         filename = data['url'] if stream else ytdl.prepare_filename(data)
         return cls(discord.FFmpegPCMAudio(filename, **FFMPEG_OPTIONS), data=data)
+
 
 
 # ---------------------------------------------------------------------------

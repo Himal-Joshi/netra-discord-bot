@@ -37,8 +37,7 @@ FFMPEG_EXECUTABLE = _find_ffmpeg()
 log.info(f"Using ffmpeg: {FFMPEG_EXECUTABLE}")
 
 # yt-dlp options
-# extractor_args: use the Android YouTube client which does NOT trigger bot-detection
-# on data-center IPs (Oracle, AWS, etc.) — avoids the "Sign in to confirm" error.
+# Android player client bypasses YouTube bot-detection on data-center IPs.
 YDL_OPTIONS = {
     'format': 'bestaudio/best',
     'noplaylist': True,
@@ -47,7 +46,6 @@ YDL_OPTIONS = {
     'logtostderr': False,
     'quiet': True,
     'no_warnings': True,
-    'default_search': 'ytsearch',
     'source_address': '0.0.0.0',
     'socket_timeout': 30,
     'extractor_args': {
@@ -85,9 +83,28 @@ class YTDLSource(discord.PCMVolumeTransformer):
     async def from_url(cls, url, *, loop=None, stream=True):
         loop = loop or asyncio.get_event_loop()
         ytdl = yt_dlp.YoutubeDL(YDL_OPTIONS)
-        data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=not stream))
+
+        # Use ytsearch1: for plain text queries so we get exactly 1 result.
+        # URLs (http/https) are passed through unchanged.
+        search_query = url if url.startswith('http') else f'ytsearch1:{url}'
+
+        data = await loop.run_in_executor(
+            None, lambda: ytdl.extract_info(search_query, download=not stream)
+        )
+
+        if data is None:
+            raise Exception("No results found. Try a different search term.")
+
         if 'entries' in data:
-            data = data['entries'][0]
+            # Force-consume the generator/list so we don't get an empty iterator
+            entries = list(data['entries'])
+            if not entries:
+                raise Exception("No results found. Try a different search term.")
+            data = entries[0]
+
+        if data is None:
+            raise Exception("Could not load song info. Try a different search term.")
+
         filename = data['url'] if stream else ytdl.prepare_filename(data)
         return cls(discord.FFmpegPCMAudio(filename, **FFMPEG_OPTIONS), data=data)
 

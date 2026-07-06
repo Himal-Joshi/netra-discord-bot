@@ -36,8 +36,20 @@ def _find_ffmpeg() -> str:
 FFMPEG_EXECUTABLE = _find_ffmpeg()
 log.info(f"Using ffmpeg: {FFMPEG_EXECUTABLE}")
 
+# ---------------------------------------------------------------------------
+# Cookies — place a cookies.txt file in the same directory as this file
+# (netra/cogs/music/cookies.txt) and it will be picked up automatically.
+# This is the most reliable way to bypass YouTube bot-detection on server IPs.
+# Export from your browser with: yt-dlp --cookies-from-browser chrome --cookies cookies.txt
+# ---------------------------------------------------------------------------
+_COOKIES_FILE = os.path.join(os.path.dirname(__file__), 'cookies.txt')
+if os.path.isfile(_COOKIES_FILE):
+    log.info(f"YouTube cookies found: {_COOKIES_FILE}")
+else:
+    _COOKIES_FILE = None
+    log.warning("No cookies.txt found — YouTube may block requests from this server IP.")
+
 # yt-dlp options
-# Android player client bypasses YouTube bot-detection on data-center IPs.
 YDL_OPTIONS = {
     'format': 'bestaudio/best',
     'noplaylist': True,
@@ -48,11 +60,7 @@ YDL_OPTIONS = {
     'no_warnings': True,
     'source_address': '0.0.0.0',
     'socket_timeout': 30,
-    'extractor_args': {
-        'youtube': {
-            'player_client': ['ios', 'android', 'web'],
-        }
-    },
+    **(({'cookiefile': _COOKIES_FILE}) if _COOKIES_FILE else {}),
 }
 
 FFMPEG_OPTIONS = {

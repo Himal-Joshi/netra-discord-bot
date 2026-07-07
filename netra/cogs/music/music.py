@@ -129,14 +129,20 @@ class Music(commands.Cog):
 
     @app_commands.command(name="play", description="Play a song from YouTube or add it to the queue")
     @app_commands.describe(search="Song name or YouTube URL")
+    @app_commands.guild_only()
     async def play(self, interaction: discord.Interaction, search: str):
         await interaction.response.defer()
 
-        if not interaction.user.voice:
+        guild = interaction.guild
+        member = interaction.user
+        if guild is None or not isinstance(member, discord.Member):
+            return await interaction.followup.send("❌ This command can only be used in a server.")
+
+        if not member.voice:
             return await interaction.followup.send("❌ You must be in a voice channel first.")
 
         player: wavelink.Player
-        existing_vc = interaction.guild.voice_client
+        existing_vc = guild.voice_client
 
         # Force-disconnect stale non-wavelink voice clients (leftover from old sessions)
         if existing_vc and not isinstance(existing_vc, wavelink.Player):
@@ -145,24 +151,21 @@ class Music(commands.Cog):
 
         if not existing_vc:
             try:
-                player = await interaction.user.voice.channel.connect(
+                player = await member.voice.channel.connect(
                     cls=wavelink.Player,
-                    self_deaf=True,   # best practice: bot deafens itself
+                    self_deaf=True,
                 )
             except Exception as e:
                 return await interaction.followup.send(
                     f"❌ Could not connect to voice channel: {e}"
                 )
-            player.autoplay = wavelink.AutoPlayMode.partial  # queue-only, no recommendations
-            player.inactive_timeout = ALONE_TIMEOUT          # 2-min inactivity → disconnect
+            player.autoplay = wavelink.AutoPlayMode.partial
+            player.inactive_timeout = ALONE_TIMEOUT
         else:
             player = existing_vc  # type: ignore
 
-        # Store text channel on player for event announcements
         player.text_channel = interaction.channel
-
-        # Someone is here — cancel any lone-wolf timer
-        self._cancel_alone_task(interaction.guild.id)
+        self._cancel_alone_task(guild.id)
 
         # Search YouTube
         try:
@@ -170,7 +173,7 @@ class Music(commands.Cog):
                 search, source=wavelink.TrackSource.YouTube
             )
         except Exception as e:
-            log.error(f"[{interaction.guild.name}] Search error: {e}")
+            log.error(f"[{guild.name}] Search error: {e}")
             return await interaction.followup.send(f"❌ Search failed: {e}")
 
         if not tracks:
@@ -179,7 +182,7 @@ class Music(commands.Cog):
         track: wavelink.Playable = tracks[0]
 
         # Attach requester info to the track (shown in on_wavelink_track_start)
-        track.extras.requester = interaction.user.name
+        track.extras.requester = member.name
 
         if player.playing or player.paused:
             player.queue.put(track)
@@ -193,7 +196,10 @@ class Music(commands.Cog):
             await interaction.followup.send(f"🔍 Loading **{track.title}**…")
 
     @app_commands.command(name="pause", description="Pause the currently playing song")
+    @app_commands.guild_only()
     async def pause(self, interaction: discord.Interaction):
+        if interaction.guild is None:
+            return
         player: wavelink.Player = interaction.guild.voice_client  # type: ignore
         if not player or not player.playing:
             return await interaction.response.send_message(
@@ -203,7 +209,10 @@ class Music(commands.Cog):
         await interaction.response.send_message("⏸️ Paused the music.")
 
     @app_commands.command(name="resume", description="Resume the paused song")
+    @app_commands.guild_only()
     async def resume(self, interaction: discord.Interaction):
+        if interaction.guild is None:
+            return
         player: wavelink.Player = interaction.guild.voice_client  # type: ignore
         if not player or not player.paused:
             return await interaction.response.send_message(
@@ -213,7 +222,10 @@ class Music(commands.Cog):
         await interaction.response.send_message("▶️ Resumed the music.")
 
     @app_commands.command(name="skip", description="Skip the current song")
+    @app_commands.guild_only()
     async def skip(self, interaction: discord.Interaction):
+        if interaction.guild is None:
+            return
         player: wavelink.Player = interaction.guild.voice_client  # type: ignore
         if not player or (not player.playing and not player.paused):
             return await interaction.response.send_message("Nothing to skip.", ephemeral=True)
@@ -221,7 +233,10 @@ class Music(commands.Cog):
         await interaction.response.send_message("⏭️ Skipped the current song.")
 
     @app_commands.command(name="queue", description="View the upcoming songs in the queue")
+    @app_commands.guild_only()
     async def queue(self, interaction: discord.Interaction):
+        if interaction.guild is None:
+            return
         player: wavelink.Player = interaction.guild.voice_client  # type: ignore
         if not player or not player.queue:
             return await interaction.response.send_message(
@@ -242,7 +257,10 @@ class Music(commands.Cog):
         await interaction.response.send_message(embed=embed)
 
     @app_commands.command(name="end", description="Stop music, clear queue, and disconnect")
+    @app_commands.guild_only()
     async def end(self, interaction: discord.Interaction):
+        if interaction.guild is None:
+            return
         player: wavelink.Player = interaction.guild.voice_client  # type: ignore
         if not player:
             return await interaction.response.send_message(

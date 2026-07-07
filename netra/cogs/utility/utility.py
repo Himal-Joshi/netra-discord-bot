@@ -56,6 +56,21 @@ class Utility(commands.Cog):
             
         await interaction.response.send_message(embed=embed)
 
+    @app_commands.command(name="invite", description="Get the bot's invite link to add it to another server")
+    async def invite(self, interaction: discord.Interaction):
+        if not self.bot.user:
+            return await interaction.response.send_message("Bot is not ready yet.", ephemeral=True)
+            
+        permissions = discord.Permissions(permissions=8) # Administrator permissions, or customize as needed
+        invite_url = discord.utils.oauth_url(self.bot.user.id, permissions=permissions, scopes=("bot", "applications.commands"))
+        
+        embed = discord.Embed(
+            title="Invite Netra", 
+            description=f"Click [here]({invite_url}) to invite the bot to your server!", 
+            color=discord.Color.blue()
+        )
+        await interaction.response.send_message(embed=embed)
+
     @app_commands.command(name="help", description="Get a list of commands and how to use them")
     async def help_command(self, interaction: discord.Interaction, command_name: Optional[str] = None):
         if command_name:

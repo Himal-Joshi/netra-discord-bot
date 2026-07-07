@@ -169,11 +169,16 @@ class Music(commands.Cog):
         player.text_channel = interaction.channel
         self._cancel_alone_task(guild.id)
 
-        # Search YouTube
+        # Use SoundCloud for searches (no bot-detection on server IPs).
+        # Direct YouTube/HTTP URLs are passed through as-is.
+        is_url = search.startswith(("http://", "https://"))
         try:
-            tracks: wavelink.Search = await wavelink.Playable.search(
-                search, source=wavelink.TrackSource.YouTube
-            )
+            if is_url:
+                tracks: wavelink.Search = await wavelink.Playable.search(search)
+            else:
+                tracks: wavelink.Search = await wavelink.Playable.search(
+                    search, source=wavelink.TrackSource.SoundCloud
+                )
         except Exception as e:
             log.error(f"[{guild.name}] Search error: {e}")
             return await interaction.followup.send(f"❌ Search failed: {e}")

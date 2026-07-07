@@ -12,6 +12,7 @@ log = logging.getLogger(__name__)
 
 # Seconds bot waits alone in VC before disconnecting
 ALONE_TIMEOUT = 120
+DEFAULT_VOLUME = 200   # 200% — louder default to match other bots
 
 
 class Music(commands.Cog):
@@ -163,7 +164,7 @@ class Music(commands.Cog):
                 )
             player.autoplay = wavelink.AutoPlayMode.partial
             player.inactive_timeout = ALONE_TIMEOUT
-            await player.set_volume(100)  # explicit 100% — avoids Lavalink default being quiet
+            await player.set_volume(DEFAULT_VOLUME)
         else:
             player = cast(wavelink.Player, existing_vc)
 
@@ -240,7 +241,27 @@ class Music(commands.Cog):
         await player.skip(force=True)
         await interaction.response.send_message("⏭️ Skipped the current song.")
 
-    @app_commands.command(name="queue", description="View the upcoming songs in the queue")
+    @app_commands.command(name="volume", description="Set the music volume (10–500)")
+    @app_commands.describe(level="Volume level: 100 = normal, 200 = double, 50 = half")
+    @app_commands.guild_only()
+    async def volume(self, interaction: discord.Interaction, level: int):
+        if interaction.guild is None:
+            return
+        if not 10 <= level <= 500:
+            return await interaction.response.send_message(
+                "❌ Volume must be between **10** and **500**.", ephemeral=True
+            )
+        player: wavelink.Player = cast(wavelink.Player, interaction.guild.voice_client)
+        if not player:
+            return await interaction.response.send_message(
+                "I'm not in a voice channel.", ephemeral=True
+            )
+        await player.set_volume(level)
+        bar = "█" * (level // 50) + "░" * (10 - level // 50)
+        await interaction.response.send_message(
+            f"🔊 Volume set to **{level}%**\n`{bar}`"
+        )
+
     @app_commands.guild_only()
     async def queue(self, interaction: discord.Interaction):
         if interaction.guild is None:

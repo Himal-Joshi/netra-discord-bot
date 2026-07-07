@@ -70,25 +70,23 @@ class Music(commands.Cog):
         player: wavelink.Player = payload.player
         channel: Optional[discord.TextChannel] = getattr(player, 'text_channel', None)
 
-        log.debug(f"[{player.guild.name}] Track ended — reason: {payload.reason}")
+        # payload.reason is an enum; get its string value safely across wavelink versions
+        reason_val = getattr(payload.reason, 'value', str(payload.reason))
+        log.debug(f"[{player.guild.name}] Track ended — reason: {reason_val}")
 
         # Tell user if the track failed to load/stream
-        if payload.reason is wavelink.TrackEndReason.LOAD_FAILED:
+        if "loadFailed" in reason_val or "load_failed" in reason_val.lower():
             if channel:
                 await channel.send(
                     f"❌ Failed to stream **{payload.track.title}**. "
-                    "Lavalink could not load this track. Skipping..."
+                    "YouTube blocked this track on the server IP. Try a different song."
                 )
 
-        # AutoPlayMode.partial handles queue automatically.
-        # Announce queue-empty only when nothing is left and track finished normally.
+        # Announce queue-empty only on normal finish (not skip/stop/replace)
         if (
             not player.queue
             and not player.playing
-            and payload.reason not in (
-                wavelink.TrackEndReason.REPLACED,
-                wavelink.TrackEndReason.STOPPED,
-            )
+            and not any(r in reason_val.lower() for r in ("replaced", "stopped"))
         ):
             if channel:
                 await channel.send(

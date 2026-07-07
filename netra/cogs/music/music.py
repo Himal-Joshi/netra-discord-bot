@@ -163,6 +163,7 @@ class Music(commands.Cog):
                 )
             player.autoplay = wavelink.AutoPlayMode.partial
             player.inactive_timeout = ALONE_TIMEOUT
+            await player.set_volume(100)  # explicit 100% — avoids Lavalink default being quiet
         else:
             player = cast(wavelink.Player, existing_vc)
 

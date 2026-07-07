@@ -1,10 +1,10 @@
 import asyncio
 import discord
 import wavelink
+from typing import Optional, cast
 from discord.ext import commands
 from discord import app_commands
 import logging
-from typing import Optional
 
 from core.bot import Netra
 
@@ -138,8 +138,10 @@ class Music(commands.Cog):
         if guild is None or not isinstance(member, discord.Member):
             return await interaction.followup.send("❌ This command can only be used in a server.")
 
-        if not member.voice:
+        if not member.voice or not member.voice.channel:
             return await interaction.followup.send("❌ You must be in a voice channel first.")
+
+        voice_channel = member.voice.channel
 
         player: wavelink.Player
         existing_vc = guild.voice_client
@@ -151,10 +153,10 @@ class Music(commands.Cog):
 
         if not existing_vc:
             try:
-                player = await member.voice.channel.connect(
+                player = cast(wavelink.Player, await voice_channel.connect(
                     cls=wavelink.Player,
                     self_deaf=True,
-                )
+                ))
             except Exception as e:
                 return await interaction.followup.send(
                     f"❌ Could not connect to voice channel: {e}"
@@ -162,7 +164,7 @@ class Music(commands.Cog):
             player.autoplay = wavelink.AutoPlayMode.partial
             player.inactive_timeout = ALONE_TIMEOUT
         else:
-            player = existing_vc  # type: ignore
+            player = cast(wavelink.Player, existing_vc)
 
         player.text_channel = interaction.channel
         self._cancel_alone_task(guild.id)

@@ -12,7 +12,7 @@ log = logging.getLogger(__name__)
 
 # Seconds bot waits alone in VC before disconnecting
 ALONE_TIMEOUT = 120
-DEFAULT_VOLUME = 200   # 200% — louder default to match other bots
+DEFAULT_VOLUME = 100   # 100% — anything above causes clipping/distortion
 
 
 class Music(commands.Cog):

@@ -6,12 +6,23 @@ from typing import Optional
 from database.session import SessionLocal
 from models.systems import TicketSettings
 from api.dependencies import verify_guild_admin
+import api.server
 
 router = APIRouter()
 
 class TicketSettingsUpdate(BaseModel):
     transcript_channel_id: Optional[int] = None
     moderator_role_id: Optional[int] = None
+
+@router.get("/bot-guilds")
+async def get_bot_guilds():
+    """
+    Returns a list of guild IDs the bot is currently in as strings.
+    """
+    bot = api.server.bot_instance
+    if not bot:
+        return []
+    return [str(guild.id) for guild in bot.guilds]
 
 @router.get("/{guild_id}/ticket-settings")
 async def get_ticket_settings(guild_id: int, is_admin: bool = Depends(verify_guild_admin)):

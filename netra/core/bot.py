@@ -65,6 +65,7 @@ class Netra(commands.AutoShardedBot):
             "cogs.reminders.reminders",
             "cogs.tickets.tickets",
             "cogs.music.music",
+            "cogs.welcome.welcome",
         ]
 
         for ext in initial_extensions:

@@ -33,3 +33,17 @@ class TicketSettings(Base):
     guild_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     moderator_role_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
     transcript_channel_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
+
+class AutoModSettings(Base):
+    __tablename__ = "automod_settings"
+    
+    guild_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    blacklisted_words: Mapped[list] = mapped_column(JSON, default=list)
+
+class WelcomeSettings(Base):
+    __tablename__ = "welcome_settings"
+    
+    guild_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    channel_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
+    message: Mapped[Optional[str]] = mapped_column(String(2000), nullable=True)
+    image_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)

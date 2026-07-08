@@ -1,0 +1,27 @@
+name: Deploy Bot to Oracle
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy to Oracle Server
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: SSH and Deploy
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.ORACLE_HOST }}
+          username: ${{ secrets.ORACLE_USER }}
+          key: ${{ secrets.ORACLE_SSH_KEY }}
+          script: |
+            echo "Starting deployment..."
+            cd ~/netra-official
+            git pull origin main
+            echo "Restarting Bot Screen Session..."
+            screen -S new_netra -X quit || true
+            screen -dmS new_netra bash -c "cd ~/netra-official/netra && ~/netra-official/netra/venv/bin/python launcher.py > ~/netra-official/bot.log 2>&1"
+            echo "Deployment successful!"

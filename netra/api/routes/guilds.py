@@ -30,6 +30,7 @@ class EmbedSendRequest(BaseModel):
     description: Optional[str] = None
     color: Optional[str] = None
     image_url: Optional[str] = None
+    thumbnail_url: Optional[str] = None
 
 @router.get("/bot-guilds")
 async def get_bot_guilds():
@@ -122,6 +123,8 @@ async def send_embed(guild_id: int, request: EmbedSendRequest, is_admin: bool = 
         embed = discord.Embed(title=request.title, description=request.description, color=color_val)
         if request.image_url:
             embed.set_image(url=request.image_url)
+        if request.thumbnail_url:
+            embed.set_thumbnail(url=request.thumbnail_url)
         
         await channel.send(embed=embed)
         return {"success": True, "message": "Embed sent successfully!"}

@@ -44,14 +44,13 @@ class AutoMod(commands.Cog):
         # Check blacklisted words
         for word in blacklisted:
             if word.lower() in content_lower:
-                if not message.author.guild_permissions.manage_messages:
-                    try:
-                        await message.delete()
-                        formatted_warning = warning_message.replace("{user}", message.author.mention)
-                        await message.channel.send(formatted_warning, delete_after=5)
-                        return # Stop processing
-                    except discord.Forbidden:
-                        pass
+                try:
+                    await message.delete()
+                    formatted_warning = warning_message.replace("{user}", message.author.mention)
+                    await message.channel.send(formatted_warning, delete_after=5)
+                    return # Stop processing
+                except discord.Forbidden:
+                    pass
 
         # Simple invite protection
         if self.invite_regex.search(message.content):

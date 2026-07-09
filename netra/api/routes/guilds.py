@@ -17,6 +17,7 @@ class TicketSettingsUpdate(BaseModel):
 
 class AutoModSettingsUpdate(BaseModel):
     blacklisted_words: list[str]
+    warning_message: Optional[str] = None
 
 class WelcomeSettingsUpdate(BaseModel):
     channel_id: Optional[int] = None
@@ -134,9 +135,9 @@ async def get_automod_settings(guild_id: int, is_admin: bool = Depends(verify_gu
         settings = result.scalar_one_or_none()
         
         if not settings:
-            return {"guild_id": guild_id, "blacklisted_words": []}
+            return {"guild_id": guild_id, "blacklisted_words": [], "warning_message": None}
             
-        return {"guild_id": settings.guild_id, "blacklisted_words": settings.blacklisted_words}
+        return {"guild_id": settings.guild_id, "blacklisted_words": settings.blacklisted_words, "warning_message": settings.warning_message}
 
 @router.post("/{guild_id}/automod-settings")
 async def update_automod_settings(guild_id: int, config: AutoModSettingsUpdate, is_admin: bool = Depends(verify_guild_admin)):
@@ -149,6 +150,7 @@ async def update_automod_settings(guild_id: int, config: AutoModSettingsUpdate, 
             session.add(settings)
             
         settings.blacklisted_words = config.blacklisted_words
+        settings.warning_message = config.warning_message
         await session.commit()
         return {"success": True, "message": "Automod settings updated"}
 
@@ -210,7 +212,8 @@ async def get_all_settings(guild_id: int, is_admin: bool = Depends(verify_guild_
         a_settings = automod_result.scalar_one_or_none()
         automod = {
             "guild_id": guild_id,
-            "blacklisted_words": a_settings.blacklisted_words if a_settings else []
+            "blacklisted_words": a_settings.blacklisted_words if a_settings else [],
+            "warning_message": a_settings.warning_message if a_settings else None
         }
 
         # Welcome Settings

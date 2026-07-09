@@ -20,8 +20,9 @@ class AutoMod(commands.Cog):
         if message.author.bot or not message.guild:
             return
 
-        # Fetch blacklisted words for this guild
+        # Fetch blacklisted words and warning message for this guild
         blacklisted = []
+        warning_message = "{user}, watch your language! That word is blacklisted."
         try:
             from database.session import SessionLocal
             from models.systems import AutoModSettings
@@ -30,8 +31,11 @@ class AutoMod(commands.Cog):
             async with SessionLocal() as session:
                 result = await session.execute(select(AutoModSettings).where(AutoModSettings.guild_id == message.guild.id))
                 settings = result.scalar_one_or_none()
-                if settings and settings.blacklisted_words:
-                    blacklisted = settings.blacklisted_words
+                if settings:
+                    if settings.blacklisted_words:
+                        blacklisted = settings.blacklisted_words
+                    if settings.warning_message:
+                        warning_message = settings.warning_message
         except Exception as e:
             log.error(f"Failed to fetch automod settings: {e}")
 
@@ -43,7 +47,8 @@ class AutoMod(commands.Cog):
                 if not message.author.guild_permissions.manage_messages:
                     try:
                         await message.delete()
-                        await message.channel.send(f"{message.author.mention}, watch your language! That word is blacklisted.", delete_after=5)
+                        formatted_warning = warning_message.replace("{user}", message.author.mention)
+                        await message.channel.send(formatted_warning, delete_after=5)
                         return # Stop processing
                     except discord.Forbidden:
                         pass

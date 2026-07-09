@@ -1,8 +1,13 @@
 import aiohttp
 from fastapi import Request, HTTPException, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+import time
 
 security = HTTPBearer()
+
+# Simple in-memory cache for user guilds to prevent Discord rate limits
+# Format: { token: (expiry_timestamp, guilds_list) }
+_guilds_cache = {}
 
 async def get_discord_user(credentials: HTTPAuthorizationCredentials = Security(security)) -> dict:
     """
@@ -25,6 +30,14 @@ async def get_user_guilds(credentials: HTTPAuthorizationCredentials = Security(s
     Fetches the list of guilds the user is in using their access token.
     """
     token = credentials.credentials
+    
+    # Check cache
+    now = time.time()
+    if token in _guilds_cache:
+        expiry, cached_guilds = _guilds_cache[token]
+        if now < expiry:
+            return cached_guilds
+
     headers = {
         "Authorization": f"Bearer {token}"
     }
@@ -33,7 +46,11 @@ async def get_user_guilds(credentials: HTTPAuthorizationCredentials = Security(s
         async with session.get("https://discord.com/api/v10/users/@me/guilds", headers=headers) as resp:
             if resp.status != 200:
                 raise HTTPException(status_code=401, detail="Could not fetch user guilds")
-            return await resp.json()
+            
+            guilds = await resp.json()
+            # Cache for 60 seconds
+            _guilds_cache[token] = (now + 60, guilds)
+            return guilds
 
 async def verify_guild_admin(guild_id: int, guilds: list = Security(get_user_guilds)):
     """

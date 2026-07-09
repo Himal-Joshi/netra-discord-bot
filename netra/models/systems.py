@@ -39,6 +39,7 @@ class AutoModSettings(Base):
     
     guild_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     blacklisted_words: Mapped[list] = mapped_column(JSON, default=list)
+    warning_message: Mapped[Optional[str]] = mapped_column(String(2000), nullable=True)
 
 class WelcomeSettings(Base):
     __tablename__ = "welcome_settings"

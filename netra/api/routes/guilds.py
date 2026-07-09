@@ -184,3 +184,55 @@ async def update_welcome_settings(guild_id: int, config: WelcomeSettingsUpdate, 
         
         await session.commit()
         return {"success": True, "message": "Welcome settings updated"}
+
+@router.get("/{guild_id}/all-settings")
+async def get_all_settings(guild_id: int, is_admin: bool = Depends(verify_guild_admin)):
+    bot = api.server.bot_instance
+    if not bot:
+        raise HTTPException(status_code=503, detail="Bot is offline")
+    
+    guild = bot.get_guild(guild_id)
+    if not guild:
+        raise HTTPException(status_code=404, detail="Guild not found")
+
+    async with SessionLocal() as session:
+        # Ticket Settings
+        ticket_result = await session.execute(select(TicketSettings).where(TicketSettings.guild_id == guild_id))
+        t_settings = ticket_result.scalar_one_or_none()
+        ticket = {
+            "guild_id": guild_id,
+            "transcript_channel_id": t_settings.transcript_channel_id if t_settings else None,
+            "moderator_role_id": t_settings.moderator_role_id if t_settings else None
+        }
+
+        # AutoMod Settings
+        automod_result = await session.execute(select(AutoModSettings).where(AutoModSettings.guild_id == guild_id))
+        a_settings = automod_result.scalar_one_or_none()
+        automod = {
+            "guild_id": guild_id,
+            "blacklisted_words": a_settings.blacklisted_words if a_settings else []
+        }
+
+        # Welcome Settings
+        welcome_result = await session.execute(select(WelcomeSettings).where(WelcomeSettings.guild_id == guild_id))
+        w_settings = welcome_result.scalar_one_or_none()
+        welcome = {
+            "guild_id": guild_id,
+            "channel_id": w_settings.channel_id if w_settings else None,
+            "message": w_settings.message if w_settings else None,
+            "image_url": w_settings.image_url if w_settings else None
+        }
+
+    # Channels
+    channels = [
+        {"id": str(c.id), "name": c.name}
+        for c in guild.channels
+        if isinstance(c, discord.TextChannel)
+    ]
+
+    return {
+        "ticketSettings": ticket,
+        "automodSettings": automod,
+        "welcomeSettings": welcome,
+        "channels": channels
+    }

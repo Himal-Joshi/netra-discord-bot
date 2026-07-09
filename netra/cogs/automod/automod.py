@@ -46,7 +46,7 @@ class AutoMod(commands.Cog):
             if word.lower() in content_lower:
                 try:
                     await message.delete()
-                    formatted_warning = warning_message.replace("{user}", message.author.mention)
+                    formatted_warning = warning_message.replace("{user}", message.author.mention).replace("{word}", word)
                     await message.channel.send(formatted_warning, delete_after=5)
                     return # Stop processing
                 except discord.Forbidden:

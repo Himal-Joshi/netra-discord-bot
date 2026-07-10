@@ -25,7 +25,8 @@ class WelcomeSettingsUpdate(BaseModel):
     image_url: Optional[str] = None
 
 class EmbedSendRequest(BaseModel):
-    channel_id: int
+    channel_id: str
+    message: Optional[str] = None
     title: Optional[str] = None
     description: Optional[str] = None
     color: Optional[str] = None
@@ -114,19 +115,22 @@ async def send_embed(guild_id: int, request: EmbedSendRequest, is_admin: bool = 
     if not guild:
         raise HTTPException(status_code=404, detail="Guild not found")
         
-    channel = guild.get_channel(request.channel_id)
+    channel = guild.get_channel(int(request.channel_id))
     if not channel or not isinstance(channel, discord.TextChannel):
         raise HTTPException(status_code=404, detail="Text channel not found")
         
     try:
         color_val = int(request.color.replace("#", ""), 16) if request.color else discord.Color.default()
-        embed = discord.Embed(title=request.title, description=request.description, color=color_val)
-        if request.image_url:
-            embed.set_image(url=request.image_url)
-        if request.thumbnail_url:
-            embed.set_thumbnail(url=request.thumbnail_url)
-        
-        await channel.send(embed=embed)
+        if request.title or request.description or request.image_url or request.thumbnail_url:
+            embed = discord.Embed(title=request.title, description=request.description, color=color_val)
+            if request.image_url:
+                embed.set_image(url=request.image_url)
+            if request.thumbnail_url:
+                embed.set_thumbnail(url=request.thumbnail_url)
+            
+            await channel.send(content=request.message, embed=embed)
+        else:
+            await channel.send(content=request.message)
         return {"success": True, "message": "Embed sent successfully!"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to send message: {str(e)}")
